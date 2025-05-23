@@ -1,7 +1,7 @@
 import json
 import os
 import subprocess
-
+import argparse
 
 # GET the number of GPUs on the node without importing libs like torch
 def get_gpu_list():
@@ -20,17 +20,36 @@ def get_gpu_list():
 # Set Device when WORLD SIZE > 1, Only Single Node Scenario Considered Now
 RANK = int(os.environ.get('RANK', 0))
 WORLD_SIZE = int(os.environ.get('WORLD_SIZE', 1))
+LOCAL_WORLD_SIZE = int(os.environ.get("NPROC_PER_NODE",1))
+LOCAL_RANK = int(os.environ.get("LOCAL_RANK",1))
+
 GPU_LIST = get_gpu_list()
-if WORLD_SIZE > 1 and len(GPU_LIST):
+print(f'Ruby debug: GPU_LIST: {GPU_LIST}, RANK: {RANK}, WORLD_SIZE: {WORLD_SIZE}')
+if LOCAL_WORLD_SIZE > 1 and len(GPU_LIST):
     NGPU = len(GPU_LIST)
-    assert NGPU >= WORLD_SIZE, "The number of processes should be less than or equal to the number of GPUs"
-    GPU_PER_PROC = NGPU // WORLD_SIZE
-    DEVICE_START_IDX = GPU_PER_PROC * RANK
+    assert NGPU >= LOCAL_WORLD_SIZE, "The number of processes should be less than or equal to the number of GPUs"
+    GPU_PER_PROC = NGPU // LOCAL_WORLD_SIZE
+    DEVICE_START_IDX = GPU_PER_PROC * LOCAL_RANK
     CUDA_VISIBLE_DEVICES = [str(i) for i in GPU_LIST[DEVICE_START_IDX: DEVICE_START_IDX + GPU_PER_PROC]]
     CUDA_VISIBLE_DEVICES = ','.join(CUDA_VISIBLE_DEVICES)
     # Set CUDA_VISIBLE_DEVICES
     os.environ['CUDA_VISIBLE_DEVICES'] = CUDA_VISIBLE_DEVICES
-    print(f'RANK: {RANK}, WORLD_SIZE: {WORLD_SIZE}, CUDA_VISIBLE_DEVICES: {CUDA_VISIBLE_DEVICES}')
+    print(f'RANK: {RANK}, LOCAL_RANK: {LOCAL_RANK}, WORLD_SIZE: {WORLD_SIZE}, LOCAL_WORLD_SIZE: {LOCAL_WORLD_SIZE}, CUDA_VISIBLE_DEVICES: {CUDA_VISIBLE_DEVICES}')
+    
+# RANK = int(os.environ.get('RANK', 0))
+# WORLD_SIZE = int(os.environ.get('WORLD_SIZE', 1))
+# GPU_LIST = get_gpu_list()
+# print(f'Ruby debug: GPU_LIST: {GPU_LIST}, RANK: {RANK}, WORLD_SIZE: {WORLD_SIZE}')
+# if WORLD_SIZE > 1 and len(GPU_LIST):
+#     NGPU = len(GPU_LIST)
+#     assert NGPU >= WORLD_SIZE, "The number of processes should be less than or equal to the number of GPUs"
+#     GPU_PER_PROC = NGPU // WORLD_SIZE
+#     DEVICE_START_IDX = GPU_PER_PROC * RANK
+#     CUDA_VISIBLE_DEVICES = [str(i) for i in GPU_LIST[DEVICE_START_IDX: DEVICE_START_IDX + GPU_PER_PROC]]
+#     CUDA_VISIBLE_DEVICES = ','.join(CUDA_VISIBLE_DEVICES)
+#     # Set CUDA_VISIBLE_DEVICES
+#     os.environ['CUDA_VISIBLE_DEVICES'] = CUDA_VISIBLE_DEVICES
+#     print(f'RANK: {RANK}, WORLD_SIZE: {WORLD_SIZE}, CUDA_VISIBLE_DEVICES: {CUDA_VISIBLE_DEVICES}')
 
 
 from vlmeval.config import supported_VLM
@@ -163,6 +182,7 @@ You can launch the evaluation by setting either --data and --model or --config.
     parser.add_argument('--config', type=str, help='Path to the Config Json File')
     # Work Dir
     parser.add_argument('--work-dir', type=str, default='./outputs', help='select the output directory')
+    parser.add_argument('--ckpt', type=str, default=None, help='select the output directory')
     # Infer + Eval or Infer Only
     parser.add_argument('--mode', type=str, default='all', choices=['all', 'infer'])
     # API Kwargs, Apply to API VLMs and Judge API LLMs
@@ -221,7 +241,7 @@ def main():
         import torch.distributed as dist
         dist.init_process_group(
             backend='nccl',
-            timeout=datetime.timedelta(seconds=int(os.environ.get('DIST_TIMEOUT', 3600)))
+            timeout=datetime.timedelta(seconds=int(os.environ.get('DIST_TIMEOUT', 53600)))
         )
 
     for _, model_name in enumerate(args.model):
@@ -355,7 +375,8 @@ def main():
                         verbose=args.verbose,
                         api_nproc=args.api_nproc,
                         ignore_failed=args.ignore,
-                        use_vllm=args.use_vllm)
+                        use_vllm=args.use_vllm,
+                        ckpt=args.ckpt)
 
                 # Set the judge kwargs first before evaluation or dumping
 

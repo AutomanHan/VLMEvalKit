@@ -16,6 +16,36 @@ RBDash_ROOT = None
 VITA_ROOT = None
 LLAVA_V1_7B_MODEL_PTH = "Please set your local path to LLaVA-7B-v1.1 here, the model weight is obtained by merging LLaVA delta weight based on vicuna-7b-v1.1 in https://github.com/haotian-liu/LLaVA/blob/main/docs/MODEL_ZOO.md with vicuna-7b-v1.1. "
 
+stepfun_system_prompt = (
+    "A conversation between User and Assistant. The user asks a question, and the Assistant solves it. The assistant "
+    "first thinks about the reasoning process in the mind and then provides the user with the answer. The reasoning "
+    "process and answer are enclosed within <think> </think> and <answer> </answer> tags, respectively, i.e., "
+    "<think> reasoning process here </think><answer> answer here </answer>."
+)
+stepfun_format_question_prefix = "You must put your answer inside <answer> </answer> tags, i.e., <answer> answer here </answer>. And your final answer will be extracted automatically. "
+
+r1v_sft_system_prompt = (
+    "A conversation between User and Assistant. The user asks a question, and the Assistant solves it. The assistant "
+    "first thinks about the reasoning process in the mind and then provides the user with the answer. The reasoning "
+    "process and answer are enclosed within <|begin_of_thought|> <|end_of_thought|> and<|begin_of_solution|> <|end_of_solution|> tags, "
+    "respectively, i.e., <|begin_of_thought|> reasoning process here <|end_of_thought|> <|begin_of_solution|> answer here <|end_of_solution|>. "
+)
+r1v_sft_question_prefix = "Return your final response within \\boxed{}. "
+
+virgo_format_question_prefix = 'Please first think deeply about the question, and then put the final answer in \\boxed{}.\n' 
+virgo_format_question_prefix_strict = 'Please first think deeply about the question, and then put the final answer in \x08oxed{}.\n'
+r1v_format_question_suffix = 'First output the thinking process in <think> </think> and final answer in <answer> </answer> tags.'
+r1v_llavacot_format_question_suffix = 'Output the thinking process in <think> </think> and final answer (one word or num) in <answer> </answer> tags.'
+
+# put it after <image>
+eureka_format_question_prefix = 'You should first thinks about the reasoning process in the mind and then provides the user with the answer. Your answer must be in latex format and wrapped in $...$.The reasoning process and answer are enclosed within <think> </think> and <answer> </answer> tags, respectively, i.e., <think> Since $1+1=2$, so the answer is $2$. </think><answer> $2$ </answer>, which means your output should start with <think> and end with </answer>.'
+
+eureka_qwen_system_prompt = """Solve the question. The user asks a question, and you solves it. You first thinks about the reasoning process in the mind and then provides the user with the answer. The answer is in latex format and wrapped in $...$. The final answer must be wrapped using the \\boxed{} command. The reasoning process and answer are enclosed within <think> </think> and <answer> </answer> tags, respectively, i.e., <think> Since $1+1=2$, so the answer is $2$. </think><answer> The answer is $\\boxed{2}$ </answer>, which means assistant's output should start with <think> and end with </answer>."""
+eureka_qwen_system_prompt_wo_box = """Solve the question. The user asks a question, and you solves it. You first thinks about the reasoning process in the mind and then provides the user with the answer. The reasoning process and answer are enclosed within <think> </think> and <answer> </answer> tags, respectively."""
+eureka_qwen_retool_system_prompt="""Solve the following problem step by step. You now have the ability to selectively write executable Python code to enhance your reasoning process. The Python code will be executed by an external sandbox, and the output (wrapped in `<interpreter>output_str</interpreter>`) can be returned to aid your reasoning and help you arrive at the final answer. The Python code should be complete scripts, including necessary imports. \nEach code snippet is wrapped with `<code>\n```python\ncode snippet\n```\n</code>`.\nThe last part of your response should be in the following format:\n<answer>\n\\boxed{{'The final answer goes here.'}}\n</answer>\n\n*user question:*\nAnswer the following Math Problem and put the answer in the format of \\boxed{{answer}}\n\n{query}\n\n\nRemember to place the final answer in the last part using the format: \n<answer>\n\\boxed{{'The final answer goes here.'}}\n</answer>"""
+
+doubao_system_prompt = 'Solve the question. The user asks a question, and you solves it. You should first think about the reasoning process in the mind and then provide the user with the answer. The reasoning process is enclosed within <think> </think> tags, i.e. <think> reasoning process here </think>here answer.'
+
 video_models = {
     "Video-LLaVA-7B": partial(VideoLLaVA, model_path="LanguageBind/Video-LLaVA-7B"),
     "Video-LLaVA-7B-HF": partial(
@@ -1082,7 +1112,7 @@ qwen2vl_series = {
     ),
     "Qwen2.5-VL-7B-Instruct": partial(
         Qwen2VLChat,
-        model_path="Qwen/Qwen2.5-VL-7B-Instruct",
+        model_path="/mnt/dolphinfs/ssd_pool/docker/user/hadoop-basecv-hl/hadoop-basecv/user/lanxiaohan/Qwen/Qwen2.5-VL-7B-Instruct",
         min_pixels=1280 * 28 * 28,
         max_pixels=16384 * 28 * 28,
         use_custom_prompt=False,
@@ -1169,6 +1199,34 @@ qwen2vl_series = {
                     "<answer> answer here </answer>"
                 ),
     ),
+    'Qwen2.5-VL-7B-Instruct-Eureka-CKPT': partial(
+        Qwen2VLChat,
+        max_new_tokens=8192,
+        min_pixels=1280 * 28 * 28,
+        max_pixels=16384 * 28 * 28,
+        use_custom_prompt=False,
+        system_prompt=eureka_qwen_system_prompt,
+    ),  # 一定需要model_path中能识别出qwen25信息
+    'Qwen2.5-VL-7B-Instruct-Eureka-CKPT-ReTool': partial(
+        Qwen2VLChat,
+        max_new_tokens=2048,
+        min_pixels=1280 * 28 * 28,
+        max_pixels=16384 * 28 * 28,
+        use_custom_prompt=False,
+        system_prompt=eureka_qwen_retool_system_prompt,
+        use_python_code = True,
+    ),  # 一定需要model_path中能识别出qwen25信息
+    'Qwen2.5-VL-7B-Instruct-StepFun-CKPT': partial(Qwen2VLChat, min_pixels=1280*28*28, max_pixels=16384*28*28, max_new_tokens=8192, system_prompt=stepfun_system_prompt, question_prefix=stepfun_format_question_prefix),
+    'Qwen2.5-VL-7B-Instruct-Eureka-CKPT-wo-box': partial(Qwen2VLChat, min_pixels=1280*28*28, max_pixels=16384*28*28, max_new_tokens=8192, system_prompt=eureka_qwen_system_prompt_wo_box),
+    'Qwen2.5-VL-32B-Instruct-Eureka-CKPT': partial(Qwen2VLChat, min_pixels=1280*28*28, max_pixels=16384*28*28, max_new_tokens=8192, system_prompt=eureka_qwen_system_prompt),
+    'Qwen2.5-VL-7B-Instruct-r1v-CKPT': partial(Qwen2VLChat, min_pixels=1280*28*28, max_pixels=16384*28*28, max_new_tokens=8192, question_suffix=r1v_format_question_suffix),
+    'Qwen2.5-VL-7B-Instruct-r1v-SFT': partial(Qwen2VLChat, min_pixels=1280*28*28, max_pixels=16384*28*28, max_new_tokens=8192, system_prompt=r1v_sft_system_prompt, question_prefix=r1v_sft_question_prefix),
+    'Qwen2.5-VL-7B-Instruct-r1v-llavacot-CKPT': partial(Qwen2VLChat, min_pixels=1280*28*28, max_pixels=16384*28*28, max_new_tokens=8192, question_suffix=r1v_llavacot_format_question_suffix),
+    'Qwen2.5-VL-7B-Instruct-CKPT': partial(Qwen2VLChat, min_pixels=1280*28*28, max_pixels=16384*28*28, max_new_tokens=8192),
+    'Qwen2.5-VL-7B-Instruct-CKPT-virgo-SFT': partial(Qwen2VLChat, min_pixels=1280*28*28, max_pixels=16384*28*28, max_new_tokens=8192, question_prefix_after_image=virgo_format_question_prefix_strict, system_prompt='You are a helpful assistant.'),
+    'Qwen2.5-VL-7B-Instruct': partial(Qwen2VLChat, model_path='/mnt/dolphinfs/ssd_pool/docker/user/hadoop-basecv-hl/hadoop-basecv/user/lanxiaohan/Qwen/Qwen2.5-VL-7B-Instruct', min_pixels=1280*28*28, max_pixels=16384*28*28),
+    'Qwen2.5-VL-32B-Instruct': partial(Qwen2VLChat, model_path='/mnt/dolphinfs/ssd_pool/docker/user/hadoop-basecv/qiuhaibo/workspace/weights/huggingface.co/Qwen/Qwen2.5-VL-32B-Instruct', min_pixels=1280*28*28, max_pixels=16384*28*28),
+    'Qwen2.5-VL-7B-Instruct-Default': partial(Qwen2VLChat, model_path='/mnt/dolphinfs/ssd_pool/docker/user/hadoop-basecv/qiuhaibo/workspace/weights/huggingface.co/Qwen/Qwen2.5-VL-7B-Instruct', min_pixels=4*28*28, max_pixels=16384*28*28),
 }
 
 slime_series = {

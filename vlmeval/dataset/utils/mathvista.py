@@ -128,6 +128,7 @@ def MathVista_acc(result_file):
     hit = defaultdict(lambda: 0)
     lt = len(data)
     skill_list = []
+    score_list = []
     for i in range(lt):
         item = data.iloc[i]
         cate = item['task']
@@ -151,6 +152,13 @@ def MathVista_acc(result_file):
             hit[cate] += 1
             for skill in skills:
                 hit[skill] += 1
+            score_list.append(True)
+        else:
+            score_list.append(False)
+
+    if 'score' not in data:
+        data['score'] = score_list
+        dump(data, result_file)
 
     res = defaultdict(list)
     for k in tot.keys():

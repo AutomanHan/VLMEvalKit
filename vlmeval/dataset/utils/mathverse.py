@@ -171,6 +171,8 @@ def MathVerse_acc(result_file):
     df = pd.concat([df.drop('metadata', axis=1), df_metadata], axis=1)
 
     subset = list(set(df['problem_version']))
+    # add overall
+    subset.append('Overall')
 
     res = defaultdict(list)
     for p in subset:

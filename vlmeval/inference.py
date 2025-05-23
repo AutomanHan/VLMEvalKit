@@ -79,7 +79,7 @@ def infer_data_api(model, work_dir, model_name, dataset, index_set=None, api_npr
     return res
 
 
-def infer_data(model, model_name, work_dir, dataset, out_file, verbose=False, api_nproc=4, use_vllm=False):
+def infer_data(model, model_name, work_dir, dataset, out_file, verbose=False, api_nproc=4, use_vllm=False, ckpt=None):
     dataset_name = dataset.dataset_name
     prev_file = f'{work_dir}/{model_name}_{dataset_name}_PREV.pkl'
     res = load(prev_file) if osp.exists(prev_file) else {}
@@ -114,6 +114,9 @@ def infer_data(model, model_name, work_dir, dataset, out_file, verbose=False, ap
         or 'Qwen2.5-VL' in model_name
     ):
         kwargs = {'use_vllm': use_vllm}
+    if ckpt is not None:
+        kwargs['model_path'] = ckpt
+    
     model = supported_VLM[model_name](**kwargs) if isinstance(model, str) else model
 
     is_api = getattr(model, 'is_api', False)
@@ -144,8 +147,8 @@ def infer_data(model, model_name, work_dir, dataset, out_file, verbose=False, ap
             struct = model.build_prompt(data.iloc[i], dataset=dataset_name)
         else:
             struct = dataset.build_prompt(data.iloc[i])
-
         response = model.generate(message=struct, dataset=dataset_name)
+        # import pdb;pdb.set_trace()
         torch.cuda.empty_cache()
 
         if verbose:
@@ -162,7 +165,7 @@ def infer_data(model, model_name, work_dir, dataset, out_file, verbose=False, ap
 
 # A wrapper for infer_data, do the pre & post processing
 def infer_data_job(
-    model, work_dir, model_name, dataset, verbose=False, api_nproc=4, ignore_failed=False, use_vllm=False
+    model, work_dir, model_name, dataset, verbose=False, api_nproc=4, ignore_failed=False, use_vllm=False, ckpt=None
 ):
     rank, world_size = get_rank_and_world_size()
     dataset_name = dataset.dataset_name
@@ -184,7 +187,7 @@ def infer_data_job(
 
     model = infer_data(
         model=model, work_dir=work_dir, model_name=model_name, dataset=dataset,
-        out_file=out_file, verbose=verbose, api_nproc=api_nproc, use_vllm=use_vllm)
+        out_file=out_file, verbose=verbose, api_nproc=api_nproc, use_vllm=use_vllm, ckpt=ckpt)
     if world_size > 1:
         dist.barrier()
 

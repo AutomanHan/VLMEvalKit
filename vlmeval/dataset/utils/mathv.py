@@ -154,6 +154,7 @@ def MATH_V_acc(result_file):
     fetch = defaultdict(lambda: 0)
     hit = defaultdict(lambda: 0)
     lt = len(data)
+    score_list = []
     from tqdm import tqdm
     for i in tqdm(range(lt)):
         item = data.iloc[i]
@@ -166,7 +167,14 @@ def MATH_V_acc(result_file):
         if post_check(item, prefetch=False):
             hit['Overall'] += 1
             hit[cate] += 1
-
+            score_list.append(True)
+        else:
+            score_list.append(False)
+    
+    if 'score' not in data:
+        data['score'] = score_list
+        dump(data, result_file)
+        
     res = defaultdict(list)
     for k in tot.keys():
         res['Subject'].append(k)

@@ -26,8 +26,8 @@ class DoubaoVLWrapper(BaseAPI):
                  system_prompt: str = None,
                  temperature: float = 0,
                  timeout: int = 60,
-                 max_tokens: int = 4096,
-                 api_base: str = 'https://ark.cn-beijing.volces.com/api/v3',  # 使用系统推荐的服务区域地址
+                 max_tokens: int = 12288,
+                 api_base: str = 'https://aigc.sankuai.com/v1/openai/native',  # 使用系统推荐的服务区域地址
                  **kwargs):
 
         self.model = model  # This variable is unused
@@ -170,19 +170,23 @@ class DoubaoVLWrapper(BaseAPI):
         ret_code = -1
         answer = self.fail_msg
         response = None
-        try:
-            response = self.client.chat.completions.create(
-                model=self.endpoint,
-                messages=input_msgs,
-                max_tokens=max_tokens,
-                temperature=temperature
-            )
-            answer = response.choices[0].message.content.strip()
-            ret_code = 0
-        except Exception as err:
-            if self.verbose:
-                self.logger.error(f'{type(err)}: {err}')
-                self.logger.error(response.text if hasattr(response, 'text') else response)
+        
+        retries = 10
+        while retries > 0 and ret_code != 0:
+            try:
+                response = self.client.chat.completions.create(
+                    model=self.endpoint,
+                    messages=input_msgs,
+                    max_tokens=max_tokens,
+                    temperature=temperature
+                )
+                answer = response.choices[0].message.content.strip()
+                ret_code = 0
+            except Exception as err:
+                retries -= 1
+                if self.verbose:
+                    self.logger.error(f'{type(err)}: {err}')
+                    self.logger.error(response.text if hasattr(response, 'text') else response)
 
         return ret_code, answer, response
 
@@ -194,12 +198,19 @@ class DoubaoVL(DoubaoVLWrapper):
 
 
 if __name__ == '__main__':
-    # export DOUBAO_VL_KEY=''
-    # export DOUBAO_VL_ENDPOINT=''
-    model = DoubaoVLWrapper(verbose=True)
+    # model = DoubaoVLWrapper(verbose=True)
+    # inputs = [
+    #     {'type': 'image', 'value': './assets/apple.jpg'},
+    #     {'type': 'text', 'value': '请详细描述一下这张图片。'},
+    # ]
+    # code, answer, resp = model.generate_inner(inputs)
+    # print(code, answer, resp)
+    system_prompt = 'You should first think about the reasoning process in the mind and then provide the user with the answer. The reasoning process is enclosed within <think> </think> tags, i.e. <think> reasoning process here </think>here answer. NOTE: The answer is in latex format and wrapped in $...$. The final answer must be wrapped using the \\boxed{} command. i.e., <think> Since $1+1=2$, so the answer is $2$. </think> The answer is $\\boxed{2}$.'
+    model = DoubaoVLWrapper(verbose=True, system_prompt=system_prompt)
+    # model = DoubaoVLWrapper(verbose=True)
     inputs = [
-        {'type': 'image', 'value': './assets/apple.jpg'},
-        {'type': 'text', 'value': '请详细描述一下这张图片。'},
+        {'type': 'image', 'value': '/mnt/dolphinfs/hdd_pool/docker/user/hadoop-basecv/vacv-data/mlm/qvq_data/MM-Math/geoqa_plus/5520.png'},
+        {'type': 'text', 'value': 'Question: What is the distance of segment DE in the figure if AD is parallel to BE and BE is parallel to CF, and AB measures 4.0, BC measures 5.0, and EF measures 4.0?\nChoices:\nA: 5\nB: 3\nC: 3.2\nD: 4'},
     ]
     code, answer, resp = model.generate_inner(inputs)
     print(code, answer, resp)

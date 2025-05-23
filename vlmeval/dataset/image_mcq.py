@@ -1223,10 +1223,10 @@ class WeMath(ImageBaseDataset):
             model = None
         elif gpt_key_set():
             model = build_judge(**judge_kwargs)
-            if not model.working():
-                warnings.warn('OPENAI API is not working properly, will use exact matching for evaluation')
-                warnings.warn(DEBUG_MESSAGE)
-                model = None
+            # if not model.working():
+            #     warnings.warn('OPENAI API is not working properly, will use exact matching for evaluation')
+            #     warnings.warn(DEBUG_MESSAGE)
+            #     model = None
         else:
             warnings.warn('OPENAI_API_KEY is not set properly, will use exact matching for evaluation')
             model = None

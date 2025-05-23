@@ -7,7 +7,7 @@ from rich.progress import (BarColumn, MofNCompleteColumn, Progress, Task,
 from rich.text import Text
 import os.path as osp
 import time
-import portalocker
+# import portalocker
 from ..smp import load, dump
 
 

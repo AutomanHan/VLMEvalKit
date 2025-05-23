@@ -12,6 +12,11 @@ from ..base import BaseModel
 from .prompt import Qwen2VLPromptMixin
 from ...smp import get_rank_and_world_size, get_gpu_memory, listinstr
 from ...dataset import DATASET_MODALITY
+from ...utils import CustomStoppingCriteria
+from ...utils import PythonExecutor
+from transformers import StoppingCriteria, StoppingCriteriaList
+import copy
+
 
 VLLM_MAX_IMAGE_INPUT_NUM = 24
 
@@ -160,6 +165,9 @@ class Qwen2VLChat(Qwen2VLPromptMixin, BaseModel):
         post_process: bool = False,  # if True, will try to only extract stuff in the last \boxed{}.
         verbose: bool = False,
         use_audio_in_video: bool = False,
+        question_prefix: str | None = None,
+        question_prefix_after_image: str | None = None,
+        question_suffix: str | None = None,
         **kwargs,
     ):
         super().__init__(use_custom_prompt=use_custom_prompt)
@@ -177,6 +185,9 @@ class Qwen2VLChat(Qwen2VLPromptMixin, BaseModel):
             repetition_penalty=repetition_penalty,
         )
         self.system_prompt = system_prompt
+        self.question_prefix = question_prefix
+        self.question_prefix_after_image = question_prefix_after_image
+        self.question_suffix = question_suffix
         self.verbose = verbose
         self.post_process = post_process
         self.fps = kwargs.pop('fps', 2)
@@ -191,6 +202,8 @@ class Qwen2VLChat(Qwen2VLPromptMixin, BaseModel):
         assert model_path is not None
         self.model_path = model_path
         MODEL_CLS = None
+
+        self.use_python_code = kwargs.get('use_python_code', False)
 
         if listinstr(['omni'], model_path.lower()):
             try:
@@ -208,7 +221,7 @@ class Qwen2VLChat(Qwen2VLPromptMixin, BaseModel):
             from transformers import Qwen2VLForConditionalGeneration, Qwen2VLProcessor
             MODEL_CLS = Qwen2VLForConditionalGeneration
             self.processor = Qwen2VLProcessor.from_pretrained(model_path)
-
+        
         gpu_mems = get_gpu_memory()
         max_gpu_mem = max(gpu_mems) if gpu_mems != [] else -1
         assert max_gpu_mem > 0
@@ -245,7 +258,7 @@ class Qwen2VLChat(Qwen2VLPromptMixin, BaseModel):
 
         else:
             self.model = MODEL_CLS.from_pretrained(
-                model_path, torch_dtype='auto', device_map="auto", attn_implementation='flash_attention_2'
+                model_path, torch_dtype=torch.bfloat16, device_map="auto", attn_implementation='flash_attention_2'
             )
             self.model.eval()
 
@@ -410,6 +423,17 @@ class Qwen2VLChat(Qwen2VLPromptMixin, BaseModel):
         if self.system_prompt is not None:
             messages.append({'role': 'system', 'content': self.system_prompt})
         messages.append({'role': 'user', 'content': self._prepare_content(message, dataset=dataset)})
+        
+        if self.question_prefix is not None: # virgo (but add question_prefix at the very beginning)
+            messages[-1]['content'] = [{'type': 'text', 'text': self.question_prefix}] + messages[-1]['content']
+        
+        if self.question_prefix_after_image is not None: # update virgo-like inference
+            messages[-1]['content'] = self.reorder_and_append(messages[-1]['content'], {'type': 'text', 'text': self.question_prefix_after_image})
+        
+        if self.question_suffix is not None: # open-r1-multimodal
+            assert len(messages) == 1
+            messages[-1]['content'] = messages[-1]['content'] + [{'type': 'text', 'text': self.question_suffix}]
+        
         if self.verbose:
             print(f'\033[31m{messages}\033[0m')
 
@@ -425,10 +449,14 @@ class Qwen2VLChat(Qwen2VLPromptMixin, BaseModel):
         if listinstr(['omni'], self.model_path.lower()):
             self.generate_kwargs['use_audio_in_video'] = self.use_audio_in_video
             self.generate_kwargs['return_audio'] = False
-        generated_ids = self.model.generate(
-            **inputs,
-            **self.generate_kwargs,
-        )
+        if not self.use_python_code:
+            generated_ids = self.model.generate(
+                **inputs,
+                **self.generate_kwargs,
+            )
+        else:
+            generated_ids = self.generate_code_exec(inputs)
+        # import pdb;pdb.set_trace()
         generated_ids = [
             output_ids[len(input_ids):] for input_ids, output_ids in zip(inputs.input_ids, generated_ids)
         ]
@@ -558,3 +586,72 @@ class Qwen2VLChat(Qwen2VLPromptMixin, BaseModel):
             return self.generate_inner_vllm(message, dataset=dataset)
         else:
             return self.generate_inner_transformers(message, dataset=dataset)
+        
+    def generate_code_exec(self, inputs):
+        """
+        Generate code execution for the given message.
+        """
+        executor = PythonExecutor()
+        def excute_codes(codes, executor: PythonExecutor):
+            no_code_idx = []
+            codes_use = []
+
+            if codes != "":
+                codes_use.append(codes)
+            else:
+                return None
+            batch_results = executor.batch_apply(codes_use)
+            return batch_results
+
+        stop_tokens = ["</code>"]
+        stop_criteria = [CustomStoppingCriteria(stop_strings=stop_tokens, prompt=inputs,tokenizer=self.processor.tokenizer)]
+        generated_ids = self.model.generate(
+            **inputs,
+            **self.generate_kwargs,
+            stopping_criteria=StoppingCriteriaList(stop_criteria)
+        )
+        max_code_loop = 5
+        code_loop_now = 1
+        while stop_criteria[0].stop_reason is not None : # 停止信号： stopped_by_</code>            
+            if code_loop_now > max_code_loop:
+                break
+            code_loop_now += 1
+            generated_out_ids = [
+                output_ids[len(input_ids):] for input_ids, output_ids in zip(inputs.input_ids, generated_ids)
+            ]
+            intermidiate_pred = self.processor.tokenizer.batch_decode(
+                generated_out_ids, skip_special_tokens=True, clean_up_tokenization_spaces=False
+            )[0]
+            
+            code_last = intermidiate_pred.split("```python")[-1].replace("</code>","").replace("```","").strip()
+            
+            exe_result=excute_codes(code_last, executor)[0]
+
+            if exe_result is not None:
+                output, report = exe_result
+                if report == "Done":
+                    excu_content = output
+                else:
+                    excu_content = report
+                
+                intermediate_res = "<interpreter>\n" + excu_content + "\n</interpreter>\n"
+                intermediate_ids = self.processor.tokenizer.encode(intermediate_res, return_tensors="pt").to(inputs.input_ids.device)
+
+                inputs["input_ids"] = torch.cat([generated_ids, intermediate_ids], dim=1)
+                inputs["attention_mask"] = torch.ones(inputs["input_ids"].shape, device=inputs["input_ids"].device)
+                stop_criteria[0].stop_reason= None
+                stop_criteria[0].prompt_length = inputs["input_ids"].shape[-1]
+                new_generate_kwargs = copy.deepcopy(self.generate_kwargs)
+                new_generate_kwargs["max_new_tokens"] = 256
+                generated_ids = self.model.generate(
+                    **inputs,
+                    **self.generate_kwargs,
+                    stopping_criteria=StoppingCriteriaList(stop_criteria)
+                )
+                # import pdb;pdb.set_trace()
+
+        return generated_ids
+
+
+
+        
