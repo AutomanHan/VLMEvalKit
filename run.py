@@ -20,7 +20,7 @@ def get_gpu_list():
 # Set Device when WORLD SIZE > 1, Only Single Node Scenario Considered Now
 RANK = int(os.environ.get('RANK', 0))
 WORLD_SIZE = int(os.environ.get('WORLD_SIZE', 1))
-LOCAL_WORLD_SIZE = int(os.environ.get("NPROC_PER_NODE",1))
+LOCAL_WORLD_SIZE = int(os.environ.get("NPROC_PER_NODE",8))
 LOCAL_RANK = int(os.environ.get("LOCAL_RANK",1))
 
 GPU_LIST = get_gpu_list()
@@ -51,6 +51,25 @@ if LOCAL_WORLD_SIZE > 1 and len(GPU_LIST):
 #     os.environ['CUDA_VISIBLE_DEVICES'] = CUDA_VISIBLE_DEVICES
 #     print(f'RANK: {RANK}, WORLD_SIZE: {WORLD_SIZE}, CUDA_VISIBLE_DEVICES: {CUDA_VISIBLE_DEVICES}')
 
+
+import re
+
+def extract_answer_tag(s: str) -> str:
+    # Regular expression to match content between <answer> and </answer>
+    matches = re.findall(r'<answer>(.*?)</answer>', s, re.DOTALL)
+    if len(matches) == 0:
+        return None
+    elif len(matches) > 1:
+        return matches[-1].strip()
+    else:
+        return matches[0].strip()
+
+def extract_answer_tag_for_result_file(result_file):
+    data = pd.read_excel(result_file)
+    data['prediction'] = data['prediction'].apply(extract_answer_tag)
+    upd_result_file = result_file.replace('.xlsx', '_upd.xlsx')
+    dump(data, upd_result_file)
+    return upd_result_file
 
 from vlmeval.config import supported_VLM
 from vlmeval.dataset.video_dataset_config import supported_video_datasets
@@ -467,6 +486,7 @@ def main():
                         proxy_set(eval_proxy)
 
                     # Perform the Evaluation
+                    result_file = extract_answer_tag_for_result_file(result_file)
                     eval_results = dataset.evaluate(result_file, **judge_kwargs)
                     # Display Evaluation Results in Terminal
                     if eval_results is not None:

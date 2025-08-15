@@ -42,7 +42,10 @@ eureka_format_question_prefix = 'You should first thinks about the reasoning pro
 
 eureka_qwen_system_prompt = """Solve the question. The user asks a question, and you solves it. You first thinks about the reasoning process in the mind and then provides the user with the answer. The answer is in latex format and wrapped in $...$. The final answer must be wrapped using the \\boxed{} command. The reasoning process and answer are enclosed within <think> </think> and <answer> </answer> tags, respectively, i.e., <think> Since $1+1=2$, so the answer is $2$. </think><answer> The answer is $\\boxed{2}$ </answer>, which means assistant's output should start with <think> and end with </answer>."""
 eureka_qwen_system_prompt_wo_box = """Solve the question. The user asks a question, and you solves it. You first thinks about the reasoning process in the mind and then provides the user with the answer. The reasoning process and answer are enclosed within <think> </think> and <answer> </answer> tags, respectively."""
-eureka_qwen_retool_system_prompt="""Solve the following problem step by step. You now have the ability to selectively write executable Python code to enhance your reasoning process. The Python code will be executed by an external sandbox, and the output (wrapped in `<interpreter>output_str</interpreter>`) can be returned to aid your reasoning and help you arrive at the final answer. The Python code should be complete scripts, including necessary imports. \nEach code snippet is wrapped with `<code>\n```python\ncode snippet\n```\n</code>`.\nThe last part of your response should be in the following format:\n<answer>\n\\boxed{{'The final answer goes here.'}}\n</answer>\n\n*user question:*\nAnswer the following Math Problem and put the answer in the format of \\boxed{{answer}}\n\n{query}\n\n\nRemember to place the final answer in the last part using the format: \n<answer>\n\\boxed{{'The final answer goes here.'}}\n</answer>"""
+eureka_qwen_retool_system_prompt="Solve the following problem step by step. Your answer must be in latex format and wrapped in $...$. The reasoning process and answer are enclosed within <think> </think> and <answer> </answer> tags, respectively, which means your output should start with <think> and end with </answer>. You now have the ability to selectively write executable Python code to enhance your reasoning process. The Python code will be executed by an external sandbox, and the output (wrapped in `<interpreter>output_str</interpreter>`) can be returned to aid your reasoning and help you arrive at the final answer. The Python code should be complete scripts, including necessary imports. \nEach code snippet is wrapped with `<code>\n```python\ncode snippet\n```\n</code>`.\nFor example, <think> This is the reasoning process. <code> python code here </code> <interpreter> python interpreter result here </interpreter> This is the continuation of the reasoning process. </think> <answer> The final answer is  $\\boxed{answer here}$ </answer>. In the last part of the answer, the final exact answer is enclosed within $\\boxed{}$ with latex format."
+eureka_qwen_retool_system_prompt_v2="Solve the following problem step by step. The reasoning process and answer are enclosed within <think> </think> and <answer> </answer> tags, respectively, which means your output should start with <think> and end with </answer>. You now have the ability to selectively write executable Python code to enhance your reasoning process. The Python code will be executed by an external sandbox, and the output (wrapped in `<interpreter>output_str</interpreter>`) can be returned to aid your reasoning and help you arrive at the final answer. The Python code should be complete scripts, including necessary imports. \nEach code snippet is wrapped with `<code>\n```python\ncode snippet\n```\n</code>`.\nFor example, <think> This is the reasoning process. <code> python code here </code> <interpreter> python interpreter result here </interpreter> This is the continuation of the reasoning process. </think> <answer> Final answer here </answer>."
+eureka_qwen_retool_system_prompt_v8="""Solve the following problem step by step. Your answer must be in latex format and wrapped in $...$. The reasoning process and answer are enclosed within <think> </think> and <answer> </answer> tags, respectively, i.e., <think> Since $1+1=2$, so the answer is $2$. </think><answer> $2$ </answer>, which means your output should start with <think> and end with </answer>. You now have the ability to selectively write executable Python code to enhance your reasoning process. The Python code will be executed by an external sandbox, and the output (wrapped in `<interpreter>output_str</interpreter>`) can be returned to aid your reasoning and help you arrive at the final answer. The Python code should be complete scripts, including necessary imports. \\nEach code snippet is wrapped with `<code>\\n```python\\ncode snippet\\n```\\n</code>`.\\nThe last part of your response should be in the following format:\\n<answer>\\n\\\\boxed{{'The final answer goes here.'}}\\n</answer>\\n\\n*user question:*\\nAnswer the following Math Problem and put the answer in the format of \\\\boxed{{answer}}\\n\\n{query}\\n\\n\\nRemember to place the final answer in the last part using the format: \\n<answer>\\n\\\\boxed{{'The final answer goes here.'}}\\n</answer>. \\n Example Implementation:\\n\\n<think>\\nFirst, we need to calculate the statistical properties of the dataset.\\n\\n<code>\\n```\\nimport numpy as np\\n\\n# Calculate core statistics for numerical analysis\\nvalues = np.array([12, 15, 18, 22])\\nmean = np.mean(values)\\nstd_dev = np.std(values)\\nprint(f\\\"Statistics| Mean:{mean:.2f}, SD:{std_dev:.2f}\\\")\\n```\\n</code>\\n<interpreter>\\nStatistics| Mean:16.75, SD:3.59\\n</interpreter>\\n\\nThe results suggest we should...\\n</think>\\n\\n<answer>\\nThe analysis indicates moderate variability (SD=3.59) around the mean of 16.75.\\n</answer>"""
+# """Solve the following problem step by step. You now have the ability to selectively write executable Python code to enhance your reasoning process. The Python code will be executed by an external sandbox, and the output (wrapped in `<interpreter>output_str</interpreter>`) can be returned to aid your reasoning and help you arrive at the final answer. The Python code should be complete scripts, including necessary imports. \nEach code snippet is wrapped with `<code>\n```python\ncode snippet\n```\n</code>`.\nThe last part of your response should be in the following format:\n<answer>\n\\boxed{{'The final answer goes here.'}}\n</answer>\n\n*user question:*\nAnswer the following Math Problem and put the answer in the format of \\boxed{{answer}}\n\n{query}\n\n\nRemember to place the final answer in the last part using the format: \n<answer>\n\\boxed{{'The final answer goes here.'}}\n</answer>"""
 
 doubao_system_prompt = 'Solve the question. The user asks a question, and you solves it. You should first think about the reasoning process in the mind and then provide the user with the answer. The reasoning process is enclosed within <think> </think> tags, i.e. <think> reasoning process here </think>here answer.'
 
@@ -1209,12 +1212,39 @@ qwen2vl_series = {
     ),  # 一定需要model_path中能识别出qwen25信息
     'Qwen2.5-VL-7B-Instruct-Eureka-CKPT-ReTool': partial(
         Qwen2VLChat,
-        max_new_tokens=2048,
-        min_pixels=1280 * 28 * 28,
+        max_new_tokens=8192,
+        min_pixels=128 * 28 * 28,
         max_pixels=16384 * 28 * 28,
         use_custom_prompt=False,
         system_prompt=eureka_qwen_retool_system_prompt,
         use_python_code = True,
+    ),  # 一定需要model_path中能识别出qwen25信息
+    'Qwen2.5-VL-7B-Instruct-Eureka-CKPT-ReTool-v2': partial(
+        Qwen2VLChat,
+        max_new_tokens=8192,
+        min_pixels=128 * 28 * 28,
+        max_pixels=16384 * 28 * 28,
+        use_custom_prompt=False,
+        system_prompt=eureka_qwen_retool_system_prompt_v2,
+        use_python_code = True,
+    ),  # 一定需要model_path中能识别出qwen25信息
+    'Qwen2.5-VL-7B-Instruct-Eureka-CKPT-ReTool-v8': partial(
+        Qwen2VLChat,
+        max_new_tokens=8192,
+        min_pixels=128 * 28 * 28,
+        max_pixels=16384 * 28 * 28,
+        use_custom_prompt=False,
+        system_prompt=eureka_qwen_retool_system_prompt_v8,
+        use_python_code = True,
+    ),  # 一定需要model_path中能识别出qwen25信息
+    'Qwen2.5-VL-7B-Instruct-Eureka-CKPT-ReTool-noexec': partial(
+        Qwen2VLChat,
+        max_new_tokens=8192,
+        min_pixels=128 * 28 * 28,
+        max_pixels=16384 * 28 * 28,
+        use_custom_prompt=False,
+        system_prompt=eureka_qwen_retool_system_prompt,
+        use_python_code = False,
     ),  # 一定需要model_path中能识别出qwen25信息
     'Qwen2.5-VL-7B-Instruct-StepFun-CKPT': partial(Qwen2VLChat, min_pixels=1280*28*28, max_pixels=16384*28*28, max_new_tokens=8192, system_prompt=stepfun_system_prompt, question_prefix=stepfun_format_question_prefix),
     'Qwen2.5-VL-7B-Instruct-Eureka-CKPT-wo-box': partial(Qwen2VLChat, min_pixels=1280*28*28, max_pixels=16384*28*28, max_new_tokens=8192, system_prompt=eureka_qwen_system_prompt_wo_box),

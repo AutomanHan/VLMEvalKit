@@ -41,7 +41,7 @@ class ImageVQADataset(ImageBaseDataset):
     def build_prompt(self, line):
         msgs = super().build_prompt(line)
         assert msgs[-1]['type'] == 'text'
-        msgs[-1]['value'] += '\nAnswer the question using a single word or phrase.'
+        # msgs[-1]['value'] += '\nAnswer the question using a single word or phrase.'
         return msgs
 
     # It returns a DataFrame
@@ -267,21 +267,22 @@ class MathVerse(ImageBaseDataset):
     DATASET_URL = {
         'MathVerse_MINI': 'http://opencompass.openxlab.space/utils/benchmarks/MathVerse/MathVerse_MINIV.tsv', # noqa
         'MathVerse_MINI_Vision_Only': 'http://opencompass.openxlab.space/utils/benchmarks/MathVerse/MathVerse_MINIVOnly.tsv', # noqa
+        'MathVerse_MINI_Vision_Only_CODE_YES': 'http://opencompass.openxlab.space/utils/benchmarks/MathVerse/MathVerse_MINIVOnly_code_yes.tsv', # noqa
         'MathVerse_MINI_Vision_Only_cot': 'http://opencompass.openxlab.space/utils/benchmarks/MathVerse/MathVerse_MINIVOnly.tsv', # noqa
         'MathVerse_MINI_Vision_Dominant': 'http://opencompass.openxlab.space/utils/benchmarks/MathVerse/MathVerse_MINIVDom.tsv', # noqa
         'MathVerse_MINI_Vision_Intensive': 'http://opencompass.openxlab.space/utils/benchmarks/MathVerse/MathVerse_MINIVInt.tsv', # noqa
         'MathVerse_MINI_Text_Lite': 'http://opencompass.openxlab.space/utils/benchmarks/MathVerse/MathVerse_MINITLite.tsv', # noqa
         'MathVerse_MINI_Text_Dominant': 'http://opencompass.openxlab.space/utils/benchmarks/MathVerse/MathVerse_MINITDom.tsv', # noqa
     }
-    DATASET_MD5 = {
-        'MathVerse_MINI': '5017caca32b7fa110c350a1bea861b65',
-        'MathVerse_MINI_Vision_Only': '68a11d4680014ac881fa37adeadea3a4',
-        'MathVerse_MINI_Vision_Only_cot': '68a11d4680014ac881fa37adeadea3a4',
-        'MathVerse_MINI_Vision_Dominant': 'b8fb63852d261ab2aaefba29cc2414d3',
-        'MathVerse_MINI_Vision_Intensive': '01cbd35be202bb0c4873a4186a63bc19',
-        'MathVerse_MINI_Text_Lite': '19e4b13bdd30b89a03b2e358bcfefa04',
-        'MathVerse_MINI_Text_Dominant': '4f5cd2fa6630ea00bb11d6fde1f6fe6a',
-    }
+    # DATASET_MD5 = {
+    #     'MathVerse_MINI': '5017caca32b7fa110c350a1bea861b65',
+    #     'MathVerse_MINI_Vision_Only': '68a11d4680014ac881fa37adeadea3a4',
+    #     'MathVerse_MINI_Vision_Only_cot': '68a11d4680014ac881fa37adeadea3a4',
+    #     'MathVerse_MINI_Vision_Dominant': 'b8fb63852d261ab2aaefba29cc2414d3',
+    #     'MathVerse_MINI_Vision_Intensive': '01cbd35be202bb0c4873a4186a63bc19',
+    #     'MathVerse_MINI_Text_Lite': '19e4b13bdd30b89a03b2e358bcfefa04',
+    #     'MathVerse_MINI_Text_Dominant': '4f5cd2fa6630ea00bb11d6fde1f6fe6a',
+    # }
 
     # Given one data record, return the built prompt (a multi-modal message), can override
     def build_prompt(self, line):
@@ -395,12 +396,13 @@ class MathVision(ImageBaseDataset):
     TYPE = 'VQA'
     DATASET_URL = {
         'MathVision': 'https://opencompass.openxlab.space/utils/VLMEval/MathVision.tsv',
-        'MathVision_MINI': 'https://opencompass.openxlab.space/utils/VLMEval/MathVision_MINI.tsv'
+        'MathVision_MINI': 'https://opencompass.openxlab.space/utils/VLMEval/MathVision_MINI.tsv',
+        'MathVision_CODE_YES': 'https://opencompass.openxlab.space/utils/VLMEval/MathVision_code_yes.tsv'
     }
-    DATASET_MD5 = {
-        'MathVision': '93f6de14f7916e598aa1b7165589831e',
-        'MathVision_MINI': '060fe4fa5d868987ce179307bd5f8a33'
-    }
+    # DATASET_MD5 = {
+    #     'MathVision': '93f6de14f7916e598aa1b7165589831e',
+    #     'MathVision_MINI': '060fe4fa5d868987ce179307bd5f8a33'
+    # }
 
     # It returns a DataFrame
     @classmethod

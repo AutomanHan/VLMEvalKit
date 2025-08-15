@@ -587,10 +587,11 @@ class Qwen2VLChat(Qwen2VLPromptMixin, BaseModel):
         else:
             return self.generate_inner_transformers(message, dataset=dataset)
         
-    def generate_code_exec(self, inputs):
+    def generate_code_exec(self, inputs_i):
         """
         Generate code execution for the given message.
         """
+        inputs = copy.deepcopy(inputs_i)
         executor = PythonExecutor()
         def excute_codes(codes, executor: PythonExecutor):
             no_code_idx = []
