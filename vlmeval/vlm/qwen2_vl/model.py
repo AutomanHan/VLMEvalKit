@@ -600,7 +600,7 @@ class Qwen2VLChat(Qwen2VLPromptMixin, BaseModel):
             if codes != "":
                 codes_use.append(codes)
             else:
-                return None
+                return [None]
             batch_results = executor.batch_apply(codes_use)
             return batch_results
 
