@@ -157,7 +157,7 @@ Example of expected JSON response format:
 
         if 'noprompt' not in self.dataset_name:
             prompt = prompt + self.GUIDE.format(INST=inst) + self.TEXT_EXAMPLE
-
+        # import pdb;pdb.set_trace()
         msgs = []
         if isinstance(tgt_path, list):
             msgs.extend([dict(type='image', value=p) for p in tgt_path])

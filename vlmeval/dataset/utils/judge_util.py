@@ -12,6 +12,7 @@ def build_judge(**kwargs):
     LOCAL_LLM = os.environ.get('LOCAL_LLM', None)
     if LOCAL_LLM is None:
         model_map = {
+            'gpt-5-mini':'gpt-5-mini',
             'gpt-4-turbo': 'gpt-4-1106-preview',
             'gpt-4-0613': 'gpt-4-0613',
             'gpt-4-0125': 'gpt-4-0125-preview',
@@ -25,12 +26,15 @@ def build_judge(**kwargs):
             'qwen-72b': 'Qwen/Qwen2.5-72B-Instruct',
             'deepseek': 'deepseek-ai/DeepSeek-V2.5',
             'llama31-8b': 'meta-llama/Llama-3.1-8B-Instruct',
+            "qwen-plus":'qwen-plus',
+            'qwen3-max': 'qwen3-max',
+            'Moonshot-Kimi-K2-Instruct':'Moonshot-Kimi-K2-Instruct',
         }
         model_version = model_map[model]
     else:
         model_version = LOCAL_LLM
 
-    if model in ['qwen-7b', 'qwen-72b', 'deepseek']:
+    if model in ['qwen-7b', 'qwen-72b', 'deepseek', 'qwen-plus', 'qwen3-max','Moonshot-Kimi-K2-Instruct']:
         model = SiliconFlowAPI(model_version, **kwargs)
     elif model == 'llama31-8b':
         model = HFChatModel(model_version, **kwargs)

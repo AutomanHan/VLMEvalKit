@@ -231,7 +231,7 @@ class ImageMCQDataset(ImageBaseDataset):
 
         suffix = eval_file.split('.')[-1]
         model = judge_kwargs.get('model', 'exact_matching')
-        assert model in ['chatgpt-0125', 'exact_matching', 'gpt-4-0125']
+        assert model in ['chatgpt-0125', 'exact_matching', 'gpt-4-0125','qwen-plus','qwen3-max','Moonshot-Kimi-K2-Instruct']
         name_str_map = {'chatgpt-0125': 'openai', 'gpt-4-0125': 'gpt4'}
         name_str = name_str_map[model] if model in name_str_map else model
 
@@ -1215,8 +1215,9 @@ class WeMath(ImageBaseDataset):
 
         # model = judge_kwargs['model']
         model = judge_kwargs.get('model', 'exact_matching')
-        assert model in ['exact_matching', 'gpt-4-0125', 'gpt-4-turbo', 'gpt-4o-mini'], model
-        name_str_map = {'gpt-4-0125': 'gpt4', 'gpt-4-turbo': 'gpt4-turbo', 'gpt-4o-mini': 'gpt4o-mini'}
+        assert model in ['exact_matching', 'gpt-4-0125', 'gpt-4-turbo', 'gpt-4o-mini','qwen-plus','qwen3-max','Moonshot-Kimi-K2-Instruct'], model
+        name_str_map = {'gpt-4-0125': 'gpt4', 'gpt-4-turbo': 'gpt4-turbo', 'gpt-4o-mini': 'gpt4o-mini',
+        'qwen-plus':'qwen-plus','qwen3-max':'qwen3-max','Moonshot-Kimi-K2-Instruct':'Moonshot-Kimi-K2-Instruct'}
         name_str = name_str_map[model] if model in name_str_map else model
 
         if model == 'exact_matching':

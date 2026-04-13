@@ -4,7 +4,8 @@ from vlmeval.api.base import BaseAPI
 from vlmeval.dataset import img_root_map
 
 API_BASE = "https://api.siliconflow.cn/v1/chat/completions"
-
+API_BASE = "https://dashscope.aliyuncs.com/compatible-mode/v1"
+API_BASE = "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions"
 
 def resize_image(image: Image.Image, max_height: int, max_width: int) -> Image.Image:
     width, height = image.size
@@ -110,10 +111,11 @@ class SiliconFlowAPI(BaseAPI):
             messages=self.build_msgs(msgs_raw=inputs),
             **default_kwargs,
         )
-
+        # import pdb;pdb.set_trace()
         response = requests.post(
             self.api_base, headers=self.headers, data=json.dumps(payload), timeout=self.timeout * 1.1
         )
+        # import pdb;pdb.set_trace()
         ret_code = response.status_code
         ret_code = 0 if (200 <= int(ret_code) < 300) else ret_code
 

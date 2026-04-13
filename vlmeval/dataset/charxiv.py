@@ -41,12 +41,17 @@ def auxeval(judge_model: Any, line: pd.Series, **kwargs: Any) -> Dict[str, Any]:
                 top_p=top_p,
             )
             content = json.loads(response)
+            if "extracted_answer" in content and "extract_answer" not in content:
+                content["extract_answer"]  = content["extracted_answer"]
+            print(content)
+
             if not isinstance(content, dict):
                 return failure_result
             if "score" not in content or "extract_answer" not in content:
                 return failure_result
             return content
-        except Exception:
+        except Exception as e:
+            print(e)
             continue
 
     return failure_result
@@ -228,7 +233,8 @@ class CharXiv(ImageBaseDataset):
         # Identify unprocessed indices
         indices = [i for i in range(len(data)) if i not in processed_results]
         tups = [(judge_model, data.iloc[i]) for i in range(len(data))]
-
+        # import pdb;pdb.set_trace()
+        # auxeval(tups,)
         # Process remaining examples
         nproc = judge_kwargs.pop("nproc", 4)
         if len(indices):

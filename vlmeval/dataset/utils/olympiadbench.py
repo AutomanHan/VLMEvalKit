@@ -414,6 +414,9 @@ class MathJudger:
 
         # 尝试捕获box中的内容，如果有多个则以逗号相连返回，如果一个都没有，则报错
         def extract_boxed_content(latex_str):
+            # 去掉 <think>...</think> 中的内容，避免从思考过程中重复提取 \boxed{}
+            latex_str = re.sub(r'<think>.*?</think>', '', latex_str, flags=re.DOTALL).strip()
+            # import pdb;pdb.set_trace()
             # 查找所有的 \boxed{...} 结构
             boxed_matches = re.finditer(r'\\boxed{', latex_str)
             results = ""

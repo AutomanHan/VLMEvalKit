@@ -25,6 +25,7 @@ LOCAL_RANK = int(os.environ.get("LOCAL_RANK",1))
 
 GPU_LIST = get_gpu_list()
 print(f'Ruby debug: GPU_LIST: {GPU_LIST}, RANK: {RANK}, WORLD_SIZE: {WORLD_SIZE}')
+# import pdb;pdb.set_trace()
 if LOCAL_WORLD_SIZE > 1 and len(GPU_LIST):
     NGPU = len(GPU_LIST)
     assert NGPU >= LOCAL_WORLD_SIZE, "The number of processes should be less than or equal to the number of GPUs"
@@ -291,6 +292,7 @@ def main():
                         dist.barrier()
 
                     dataset = build_dataset(dataset_name, **dataset_kwargs)
+                    # import pdb;pdb.set_trace()
                     if dataset is None:
                         logger.error(f'Dataset {dataset_name} is not valid, will be skipped. ')
                         continue
@@ -407,7 +409,8 @@ def main():
                     elif listinstr(['VGRPBench'], dataset_name):
                         judge_kwargs['model'] = 'gpt-4o'
                     elif listinstr(['MathVista', 'MathVerse', 'MathVision', 'DynaMath', 'VL-RewardBench', 'LogicVista', 'MOAT'], dataset_name):  # noqa: E501
-                        judge_kwargs['model'] = 'gpt-4o-mini'
+                        # judge_kwargs['model'] = 'gpt-4o-mini'
+                        judge_kwargs['model'] = 'gpt-5-mini'
                     elif listinstr(['MMLongBench', 'MMDU', 'DUDE', 'SLIDEVQA', 'MIA-Bench', 'WildVision', 'MMAlignBench', 'MM-IFEval'], dataset_name):  # noqa: E501
                         judge_kwargs['model'] = 'gpt-4o'
                     elif listinstr(['VDC'], dataset_name):
@@ -465,7 +468,7 @@ def main():
                     old_proxy = os.environ.get('HTTP_PROXY', '')
                     if eval_proxy is not None:
                         proxy_set(eval_proxy)
-
+                    # import pdb;pdb.set_trace()
                     # Perform the Evaluation
                     eval_results = dataset.evaluate(result_file, **judge_kwargs)
                     # Display Evaluation Results in Terminal
